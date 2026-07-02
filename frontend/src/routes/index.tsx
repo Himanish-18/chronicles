@@ -7,6 +7,7 @@ import { Landing } from '@/pages/Landing';
 import { Login } from '@/pages/Login';
 import { Register } from '@/pages/Register';
 import { ForgotPassword } from '@/pages/ForgotPassword';
+import { ResetPassword } from '@/pages/ResetPassword';
 import { BlogListing } from '@/pages/BlogListing';
 import { BlogDetail } from '@/pages/BlogDetail';
 import { DashboardHome } from '@/pages/DashboardHome';
@@ -31,7 +32,14 @@ export const router = createBrowserRouter([
     children: [
       { path: '/login', element: <Login /> },
       { path: '/register', element: <Register /> },
-      { path: '/forgot-password', element: <ForgotPassword /> },
+      {
+        path: '/forgot-password',
+        element: <ForgotPassword />,
+      },
+      {
+        path: '/reset-password/:token',
+        element: <ResetPassword />,
+      },
     ],
   },
   {
