@@ -17,8 +17,8 @@ const envSchema = z.object({
 
   SMTP_HOST: z.string().default('smtp.gmail.com'),
   SMTP_PORT: z.coerce.number().default(587),
-  SMTP_USER: z.string().min(1, 'SMTP_USER is required'),
-  SMTP_PASS: z.string().min(1, 'SMTP_PASS is required'),
+  SMTP_USER: z.string().optional().default(''),
+  SMTP_PASS: z.string().optional().default(''),
   SMTP_FROM: z.string().default('Chronicles <noreply@chronicles.dev>'),
 });
 

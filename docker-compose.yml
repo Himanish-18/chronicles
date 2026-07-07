@@ -1,0 +1,128 @@
+# ══════════════════════════════════════════════════════
+# Chronicles — Docker Compose
+# ══════════════════════════════════════════════════════
+# Usage:
+#   docker compose up -d          Start all services
+#   docker compose down           Stop and remove containers (data preserved)
+#   docker compose down -v        Stop, remove containers AND delete database volume
+#   docker compose logs -f        Follow logs from all services
+# ══════════════════════════════════════════════════════
+
+services:
+  # ────────────────────────────────────────────
+  # MySQL 8 Database
+  # ────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: chronicles-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - chronicles-mysql-data:/var/lib/mysql
+    networks:
+      - chronicles-db
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 10
+    restart: unless-stopped
+
+  # ────────────────────────────────────────────
+  # One-shot Migration Service
+  # ────────────────────────────────────────────
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: chronicles-migrate
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - chronicles-db
+    entrypoint: ["/bin/sh", "/app/docker-entrypoint.sh"]
+    user: root
+    restart: "no"
+
+  # ────────────────────────────────────────────
+  # Backend API (Node.js + Express + Prisma)
+  # ────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: chronicles-backend
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${BACKEND_PORT:-5000}
+      DATABASE_URL: ${DATABASE_URL}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM: ${SMTP_FROM:-"Chronicles <noreply@chronicles.dev>"}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
+      FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL}
+      FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - chronicles-app
+      - chronicles-db
+    restart: unless-stopped
+
+  # ────────────────────────────────────────────
+  # Frontend (Nginx + React Static Build)
+  # ────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/api}
+        VITE_FIREBASE_API_KEY: ${VITE_FIREBASE_API_KEY}
+        VITE_FIREBASE_AUTH_DOMAIN: ${VITE_FIREBASE_AUTH_DOMAIN}
+        VITE_FIREBASE_PROJECT_ID: ${VITE_FIREBASE_PROJECT_ID}
+        VITE_FIREBASE_STORAGE_BUCKET: ${VITE_FIREBASE_STORAGE_BUCKET}
+        VITE_FIREBASE_MESSAGING_SENDER_ID: ${VITE_FIREBASE_MESSAGING_SENDER_ID}
+        VITE_FIREBASE_APP_ID: ${VITE_FIREBASE_APP_ID}
+    container_name: chronicles-frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - chronicles-app
+    restart: unless-stopped
+
+# ──────────────────────────────────────────────
+# Networks
+# ──────────────────────────────────────────────
+networks:
+  chronicles-app:
+    name: chronicles-app
+    driver: bridge
+  chronicles-db:
+    name: chronicles-db
+    driver: bridge
+
+# ──────────────────────────────────────────────
+# Volumes
+# ──────────────────────────────────────────────
+volumes:
+  chronicles-mysql-data:
+    name: chronicles-mysql-data

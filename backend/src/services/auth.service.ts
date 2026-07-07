@@ -161,7 +161,7 @@ export const authService = {
 
     if (existingUser) {
       // Explicit account linking required
-      throw new ConflictError('An account already exists with this email. Sign in using your existing method to link this provider.', 'ACCOUNT_LINK_REQUIRED');
+      throw new ConflictError('An account already exists with this email. Sign in using your existing method to link this provider.');
     }
 
     // Create new user (no password)

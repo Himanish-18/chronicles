@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
-import { Camera, MapPin, Calendar, Link2 } from 'lucide-react';
-import { TwitterIcon, GithubIcon } from '@/components/icons';
+import { Camera, Calendar } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
