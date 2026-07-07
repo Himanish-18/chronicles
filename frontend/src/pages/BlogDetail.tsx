@@ -1,115 +1,41 @@
-import { useParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Eye, Heart, MessageCircle, Share2, Bookmark } from 'lucide-react';
+import { Eye, Heart, MessageCircle, Share2, Bookmark, Loader2, ArrowLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { AuthorCard } from '@/components/AuthorCard';
 import { BlogCard } from '@/components/BlogCard';
 import { formatDate, formatNumber } from '@/utils/formatDate';
-import type { Blog, User } from '@/types';
-
-// Mock blog detail
-const mockAuthor: User = {
-  id: '1', name: 'Sarah Chen', email: 'sarah@chronicles.dev',
-  avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Sarah',
-  bio: 'Senior Engineer at Vercel. Writing about web performance, DevOps, and the future of React. Open source contributor.',
-  role: 'user', createdAt: '2025-01-01T00:00:00Z',
-  socialLinks: { twitter: 'https://twitter.com', github: 'https://github.com', website: 'https://sarahchen.dev' },
-};
-
-const mockBlog: Blog = {
-  id: '1', title: 'Building Scalable Microservices with Docker and Kubernetes',
-  slug: 'building-scalable-microservices', excerpt: '',
-  content: `
-## Introduction
-
-Microservices architecture has become the de facto standard for building large-scale applications. In this comprehensive guide, we'll explore how to design, build, and deploy microservices using Docker containers orchestrated by Kubernetes.
-
-## Why Microservices?
-
-Traditional monolithic architectures can become unwieldy as applications grow. Microservices offer several advantages:
-
-- **Independent deployment** — Each service can be deployed independently
-- **Technology diversity** — Teams can choose the best stack for their service
-- **Scalability** — Scale individual services based on demand
-- **Fault isolation** — A failure in one service doesn't bring down the entire system
-
-## Containerization with Docker
-
-Docker provides a consistent runtime environment for your services. Here's a production-ready Dockerfile:
-
-\`\`\`dockerfile
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-RUN npm run build
-
-FROM node:20-alpine
-WORKDIR /app
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-EXPOSE 3000
-CMD ["node", "dist/server.js"]
-\`\`\`
-
-## Kubernetes Orchestration
-
-Kubernetes manages the lifecycle of your containers. A basic deployment manifest:
-
-\`\`\`yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: api-service
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: api-service
-  template:
-    metadata:
-      labels:
-        app: api-service
-    spec:
-      containers:
-        - name: api
-          image: registry.example.com/api:latest
-          ports:
-            - containerPort: 3000
-\`\`\`
-
-## Best Practices
-
-1. **Health Checks** — Implement liveness and readiness probes
-2. **Circuit Breakers** — Handle cascading failures gracefully
-3. **Centralized Logging** — Use ELK stack or similar
-4. **Service Mesh** — Consider Istio for advanced traffic management
-
-## Conclusion
-
-Building microservices is a journey. Start small, containerize early, and automate everything. The combination of Docker and Kubernetes provides a powerful foundation for scalable applications.
-  `,
-  coverImage: 'https://picsum.photos/seed/docker/1600/800',
-  category: { id: '3', name: 'DevOps', slug: 'devops', color: '#06b6d4' },
-  tags: ['docker', 'kubernetes', 'microservices', 'devops'],
-  author: mockAuthor, status: 'published', readTime: 8,
-  views: 12400, likes: 342, commentsCount: 28, isFeatured: true,
-  publishedAt: '2026-06-15T10:00:00Z', createdAt: '2026-06-15T10:00:00Z', updatedAt: '2026-06-15T10:00:00Z',
-};
-
-const relatedBlogs: Blog[] = [
-  { ...mockBlog, id: '2', title: 'Zero-Downtime Deployments with GitHub Actions', slug: 'zero-downtime-deployments', coverImage: 'https://picsum.photos/seed/cicd/800/400', views: 8200, readTime: 6 },
-  { ...mockBlog, id: '3', title: 'Docker Compose for Production Environments', slug: 'docker-compose-production', coverImage: 'https://picsum.photos/seed/compose/800/400', views: 6100, readTime: 10 },
-  { ...mockBlog, id: '4', title: 'Monitoring Kubernetes with Prometheus and Grafana', slug: 'k8s-monitoring', coverImage: 'https://picsum.photos/seed/monitor/800/400', views: 5400, readTime: 12 },
-];
+import { blogService } from '@/services/blogService';
+import type { Blog } from '@/types';
 
 export function BlogDetail() {
-  const { slug: _slug } = useParams();
+  const { slug } = useParams();
+  const [blog, setBlog] = useState<Blog | null>(null);
+  const [relatedBlogs, setRelatedBlogs] = useState<Blog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const blog = mockBlog;
+  useEffect(() => {
+    const fetchBlog = async () => {
+      if (!slug) return;
+      setIsLoading(true);
+      try {
+        const fetchedBlog = await blogService.getBySlug(slug);
+        setBlog(fetchedBlog);
+
+        // Fetch related blogs from the same category
+        const relatedRes = await blogService.getAll({ category: fetchedBlog.category.slug, limit: 4 });
+        setRelatedBlogs(relatedRes.blogs.filter((b) => b.id !== fetchedBlog.id).slice(0, 3));
+      } catch (error) {
+        console.error('Failed to fetch blog', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchBlog();
+  }, [slug]);
 
   // Simple markdown-to-html rendering for code blocks, headings, lists, etc.
   const renderContent = (content: string) => {
@@ -165,6 +91,22 @@ export function BlogDetail() {
     return elements;
   };
 
+  if (isLoading) {
+    return <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-primary-500" size={32} /></div>;
+  }
+
+  if (!blog) {
+    return (
+      <div className="py-20 text-center">
+        <h2 className="font-heading text-2xl font-bold text-surface-100">Blog not found</h2>
+        <p className="mt-2 text-surface-400 mb-6">The article you're looking for doesn't exist or has been removed.</p>
+        <Link to="/blogs">
+          <Button variant="outline"><ArrowLeft size={16} className="mr-2" /> Back to Blogs</Button>
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <article>
       {/* Hero Image */}
@@ -176,7 +118,7 @@ export function BlogDetail() {
       <div className="mx-auto max-w-3xl px-4 sm:px-6 -mt-32 relative z-10">
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           {/* Meta */}
-          <Badge color={blog.category.color} className="mb-4">{blog.category.name}</Badge>
+          <Badge color={blog.category?.color || '#3b82f6'} className="mb-4">{blog.category?.name}</Badge>
           <h1 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-bold text-surface-100 leading-tight">
             {blog.title}
           </h1>

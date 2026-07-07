@@ -4,6 +4,8 @@ import { refreshTokenRepository } from '../repositories/refreshToken.repository.
 import { passwordResetRepository } from '../repositories/passwordReset.repository.js';
 import { generateAccessToken, generateRefreshToken } from '../utils/jwt.js';
 import { generateResetToken, sendPasswordResetEmail } from '../utils/email.js';
+import { firebaseAdmin } from '../config/firebaseAdmin.js';
+import { prisma } from '../config/database.js';
 import {
   ConflictError,
   UnauthorizedError,
@@ -47,6 +49,26 @@ function formatUser(user: {
   };
 }
 
+/**
+ * Creates a Chronicles session for an authenticated user.
+ */
+async function createChroniclesSession(user: { id: string; role: string; name: string; email: string; avatar: string | null; bio: string | null; socialLinks: unknown; createdAt: Date }) {
+  // Generate tokens
+  const accessToken = generateAccessToken({ userId: user.id, role: user.role });
+
+  // Create refresh token
+  const refreshToken = generateRefreshToken({ userId: user.id, role: user.role });
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_EXPIRY_DAYS);
+  await refreshTokenRepository.create(user.id, refreshToken, expiresAt);
+
+  return {
+    user: formatUser(user),
+    token: accessToken,
+    refreshToken,
+  };
+}
+
 export const authService = {
   /**
    * Register a new user.
@@ -68,13 +90,9 @@ export const authService = {
       passwordHash,
     });
 
-    // Generate tokens
-    const accessToken = generateAccessToken({ userId: user.id, role: user.role });
-
-    return {
-      user: formatUser(user),
-      token: accessToken,
-    };
+    const session = await createChroniclesSession(user);
+    // Since we create a new refresh token in register, we return it to the caller
+    return session;
   },
 
   /**
@@ -87,35 +105,82 @@ export const authService = {
       throw new UnauthorizedError('Invalid email or password');
     }
 
-    // Verify password
+    // Verify password (check if passwordHash exists)
+    if (!user.passwordHash) {
+      throw new UnauthorizedError('Please sign in using your social provider');
+    }
+
     const isPasswordValid = await bcrypt.compare(input.password, user.passwordHash);
     if (!isPasswordValid) {
       throw new UnauthorizedError('Invalid email or password');
     }
 
-    // Generate tokens
-    const accessToken = generateAccessToken({ userId: user.id, role: user.role });
+    return createChroniclesSession(user);
+  },
 
-    // Create refresh token
-    const refreshToken = generateRefreshToken({ userId: user.id, role: user.role });
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_EXPIRY_DAYS);
-    await refreshTokenRepository.create(user.id, refreshToken, expiresAt);
+  /**
+   * Login with Firebase social identity.
+   */
+  async socialLogin(idToken: string) {
+    if (!firebaseAdmin) {
+      throw new ConflictError('Social login is not configured on this server');
+    }
 
-    return {
-      user: formatUser({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        avatar: user.avatar,
-        bio: user.bio,
-        role: user.role,
-        socialLinks: user.socialLinks,
-        createdAt: user.createdAt,
-      }),
-      token: accessToken,
-      refreshToken,
-    };
+    let decodedToken;
+    try {
+      decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken);
+    } catch (error) {
+      throw new UnauthorizedError('Invalid or expired social token');
+    }
+
+    const { uid, email, name, picture, firebase } = decodedToken;
+    const providerStr = firebase?.sign_in_provider;
+    let provider = '';
+
+    if (providerStr === 'google.com') provider = 'google';
+    else if (providerStr === 'github.com') provider = 'github';
+    else throw new BadRequestError('Unsupported sign-in provider');
+
+    if (!email) {
+      throw new BadRequestError('Social account must have an email address');
+    }
+
+    // Check if auth identity exists
+    const identity = await prisma.authIdentity.findUnique({
+      where: { provider_providerUserId: { provider, providerUserId: uid } },
+      include: { user: true },
+    });
+
+    if (identity) {
+      // Existing social user
+      return createChroniclesSession(identity.user);
+    }
+
+    // No identity, check if email exists
+    const existingUser = await userRepository.findByEmail(email);
+
+    if (existingUser) {
+      // Explicit account linking required
+      throw new ConflictError('An account already exists with this email. Sign in using your existing method to link this provider.', 'ACCOUNT_LINK_REQUIRED');
+    }
+
+    // Create new user (no password)
+    const newUser = await prisma.user.create({
+      data: {
+        name: name || email.split('@')[0],
+        email: email,
+        avatar: picture || null,
+        // passwordHash is optional
+        authIdentities: {
+          create: {
+            provider,
+            providerUserId: uid,
+          },
+        },
+      },
+    });
+
+    return createChroniclesSession(newUser);
   },
 
   /**
@@ -187,9 +252,12 @@ export const authService = {
       throw new NotFoundError('User not found');
     }
 
-    const isCurrentValid = await bcrypt.compare(input.currentPassword, user.passwordHash);
-    if (!isCurrentValid) {
+    const isCurrentValid = user.passwordHash ? await bcrypt.compare(input.currentPassword, user.passwordHash) : false;
+    if (!isCurrentValid && user.passwordHash) {
       throw new BadRequestError('Current password is incorrect');
+    }
+    if (!user.passwordHash) {
+      throw new BadRequestError('Your account does not have a password set. Please use password reset if you want to set one.');
     }
 
     const newHash = await bcrypt.hash(input.newPassword, SALT_ROUNDS);

@@ -16,12 +16,12 @@ const router = Router();
 router.get('/', optionalAuth, validate({ query: blogQuerySchema }), blogController.getBlogs);
 router.get('/featured', optionalAuth, blogController.getFeatured);
 router.get('/trending', optionalAuth, blogController.getTrending);
+router.get('/me', authenticate, blogController.getMyBlogs);
 router.get('/:slug', optionalAuth, validate({ params: blogParamsSchema }), blogController.getBySlug);
 
 // Protected routes (require authentication)
 router.use(authenticate);
 
-router.get('/me/all', blogController.getMyBlogs);
 router.post('/', validate({ body: createBlogSchema }), blogController.createBlog);
 router.put(
   '/:id',

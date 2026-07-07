@@ -17,7 +17,10 @@ export function validate(schema: {
         req.body = schema.body.parse(req.body);
       }
       if (schema.query) {
-        req.query = schema.query.parse(req.query) as typeof req.query;
+        Object.defineProperty(req, 'query', {
+          value: schema.query.parse(req.query),
+          enumerable: true,
+        });
       }
       if (schema.params) {
         req.params = schema.params.parse(req.params);

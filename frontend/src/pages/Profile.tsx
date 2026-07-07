@@ -10,8 +10,8 @@ import { formatNumber } from '@/utils/formatDate';
 
 const profileStats = [
   { label: 'Posts', value: 24 },
-  { label: 'Followers', value: 342 },
-  { label: 'Following', value: 128 },
+  { label: 'Followers', value: 0 },
+  { label: 'Following', value: 0 },
 ];
 
 export function Profile() {
@@ -40,15 +40,11 @@ export function Profile() {
           </div>
 
           <p className="mt-4 text-surface-300 text-sm max-w-xl">
-            {user?.bio || 'Full-stack developer & technical writer. Passionate about DevOps, cloud infrastructure, and building developer tools.'}
+            {user?.bio || 'No bio provided.'}
           </p>
 
           <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-surface-500">
-            <span className="flex items-center gap-1"><MapPin size={14} /> San Francisco, CA</span>
-            <span className="flex items-center gap-1"><Calendar size={14} /> Joined June 2025</span>
-            <a href="#" className="flex items-center gap-1 hover:text-primary-400 transition-colors"><Link2 size={14} /> sarahchen.dev</a>
-            <a href="#" className="flex items-center gap-1 hover:text-primary-400 transition-colors"><TwitterIcon size={14} /> @sarahchen</a>
-            <a href="#" className="flex items-center gap-1 hover:text-primary-400 transition-colors"><GithubIcon size={14} /> sarahchen</a>
+            <span className="flex items-center gap-1"><Calendar size={14} /> Joined {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : ''}</span>
           </div>
 
           {/* Stats */}
@@ -66,11 +62,9 @@ export function Profile() {
       {/* Skills / Interests */}
       <Card className="mb-8">
         <CardContent>
-          <h3 className="font-heading font-semibold text-surface-200 mb-3">Interests</h3>
+          <h3 className="font-heading font-semibold text-surface-200 mb-3">Role</h3>
           <div className="flex flex-wrap gap-2">
-            {['React', 'TypeScript', 'Docker', 'Kubernetes', 'AWS', 'Node.js', 'DevOps', 'System Design'].map((skill) => (
-              <Badge key={skill} variant="outline">{skill}</Badge>
-            ))}
+            <Badge variant="outline" className="uppercase">{user?.role}</Badge>
           </div>
         </CardContent>
       </Card>

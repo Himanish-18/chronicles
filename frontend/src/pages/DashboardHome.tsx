@@ -1,25 +1,14 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FileText, Eye, MessageCircle, Users, TrendingUp, ArrowUpRight, Clock } from 'lucide-react';
+import { FileText, Eye, MessageCircle, Users, ArrowUpRight, Clock, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { useAuth } from '@/contexts/AuthContext';
-import { formatNumber } from '@/utils/formatDate';
+import { formatNumber, formatDate } from '@/utils/formatDate';
 import { cn } from '@/utils/cn';
-
-const stats = [
-  { label: 'Total Posts', value: 24, icon: FileText, trend: '+3', color: 'text-primary-400 bg-primary-500/10' },
-  { label: 'Total Views', value: 12400, icon: Eye, trend: '+12%', color: 'text-secondary-400 bg-secondary-500/10' },
-  { label: 'Comments', value: 89, icon: MessageCircle, trend: '+5', color: 'text-accent-400 bg-accent-500/10' },
-  { label: 'Followers', value: 342, icon: Users, trend: '+18', color: 'text-green-400 bg-green-500/10' },
-];
-
-const recentDrafts = [
-  { title: 'Understanding WebAssembly Beyond the Hype', status: 'draft', updatedAt: '2h ago' },
-  { title: 'Advanced CSS Grid Techniques', status: 'draft', updatedAt: '1d ago' },
-  { title: 'Building a CLI Tool with Rust', status: 'published', updatedAt: '3d ago' },
-  { title: 'State Management in 2026', status: 'published', updatedAt: '5d ago' },
-];
+import { blogService } from '@/services/blogService';
+import type { Blog } from '@/types';
 
 const fadeUp = {
   initial: { opacity: 0, y: 20 },
@@ -28,6 +17,34 @@ const fadeUp = {
 
 export function DashboardHome() {
   const { user } = useAuth();
+  const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchBlogs = async () => {
+      try {
+        const data = await blogService.getMyBlogs();
+        setBlogs(data);
+      } catch (error) {
+        console.error('Failed to fetch stats', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchBlogs();
+  }, []);
+
+  const totalViews = blogs.reduce((acc, blog) => acc + (blog.views || 0), 0);
+  const totalComments = blogs.reduce((acc, blog) => acc + (blog.commentsCount || 0), 0);
+
+  const stats = [
+    { label: 'Total Posts', value: blogs.length, icon: FileText, color: 'text-primary-400 bg-primary-500/10' },
+    { label: 'Total Views', value: totalViews, icon: Eye, color: 'text-secondary-400 bg-secondary-500/10' },
+    { label: 'Comments', value: totalComments, icon: MessageCircle, color: 'text-accent-400 bg-accent-500/10' },
+    { label: 'Followers', value: 0, icon: Users, color: 'text-green-400 bg-green-500/10' },
+  ];
+
+  const recentActivity = blogs.slice(0, 4);
 
   const greeting = () => {
     const hour = new Date().getHours();
@@ -35,6 +52,10 @@ export function DashboardHome() {
     if (hour < 18) return 'Good afternoon';
     return 'Good evening';
   };
+
+  if (isLoading) {
+    return <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-primary-500" size={32} /></div>;
+  }
 
   return (
     <div>
@@ -55,10 +76,6 @@ export function DashboardHome() {
                 <div className={cn('p-2.5 rounded-xl', stat.color)}>
                   <stat.icon size={20} />
                 </div>
-                <Badge variant="primary" className="text-xs">
-                  <TrendingUp size={12} className="mr-0.5" />
-                  {stat.trend}
-                </Badge>
               </div>
               <p className="mt-4 text-2xl font-heading font-bold text-surface-100">{formatNumber(stat.value)}</p>
               <p className="text-sm text-surface-500">{stat.label}</p>
@@ -78,8 +95,8 @@ export function DashboardHome() {
         <Card>
           <CardContent className="p-0">
             <div className="divide-y divide-surface-800">
-              {recentDrafts.map((draft) => (
-                <div key={draft.title} className="flex items-center justify-between px-5 py-4 hover:bg-white/[0.02] transition-colors">
+              {recentActivity.map((draft) => (
+                <div key={draft.id} className="flex items-center justify-between px-5 py-4 hover:bg-white/[0.02] transition-colors">
                   <div className="flex items-center gap-3 min-w-0">
                     <FileText size={18} className="text-surface-500 flex-shrink-0" />
                     <span className="text-sm font-medium text-surface-200 truncate">{draft.title}</span>
@@ -89,7 +106,7 @@ export function DashboardHome() {
                       {draft.status}
                     </Badge>
                     <span className="text-xs text-surface-500 flex items-center gap-1">
-                      <Clock size={12} /> {draft.updatedAt}
+                      <Clock size={12} /> {formatDate(draft.updatedAt || draft.createdAt)}
                     </span>
                   </div>
                 </div>

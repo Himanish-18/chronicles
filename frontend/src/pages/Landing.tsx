@@ -1,47 +1,13 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, TrendingUp, Mail } from 'lucide-react';
+import { ArrowRight, TrendingUp, Mail, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { BlogCard } from '@/components/BlogCard';
-import { CATEGORIES } from '@/utils/constants';
-import type { Blog } from '@/types';
-
-// Mock featured blogs for the landing page
-const mockFeaturedBlogs: Blog[] = [
-  {
-    id: '1', title: 'Building Scalable Microservices with Docker and Kubernetes', slug: 'building-scalable-microservices',
-    excerpt: 'Learn how to design, build, and deploy microservices at scale using container orchestration best practices.',
-    content: '', coverImage: 'https://picsum.photos/seed/docker/800/400',
-    category: { id: '3', name: 'DevOps', slug: 'devops', color: '#06b6d4' },
-    tags: ['docker', 'kubernetes'], author: { id: '1', name: 'Sarah Chen', email: 's@c.com', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Sarah', role: 'user', createdAt: '' },
-    status: 'published', readTime: 8, views: 12400, likes: 342, commentsCount: 28, isFeatured: true, publishedAt: '2026-06-15T10:00:00Z', createdAt: '2026-06-15T10:00:00Z', updatedAt: '2026-06-15T10:00:00Z',
-  },
-  {
-    id: '2', title: 'The Complete Guide to React Server Components', slug: 'react-server-components-guide',
-    excerpt: 'Everything you need to know about RSC, streaming, and the future of React rendering.',
-    content: '', coverImage: 'https://picsum.photos/seed/react/800/400',
-    category: { id: '5', name: 'Web Dev', slug: 'web-dev', color: '#10b981' },
-    tags: ['react', 'rsc'], author: { id: '2', name: 'Alex Rivera', email: 'a@r.com', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Alex', role: 'user', createdAt: '' },
-    status: 'published', readTime: 12, views: 8900, likes: 256, commentsCount: 42, isFeatured: true, publishedAt: '2026-06-18T14:00:00Z', createdAt: '2026-06-18T14:00:00Z', updatedAt: '2026-06-18T14:00:00Z',
-  },
-  {
-    id: '3', title: 'Designing for AI: UI Patterns for Intelligent Applications', slug: 'designing-for-ai',
-    excerpt: 'Explore the emerging design patterns that make AI-powered applications intuitive and delightful.',
-    content: '', coverImage: 'https://picsum.photos/seed/aidesign/800/400',
-    category: { id: '4', name: 'AI & ML', slug: 'ai-ml', color: '#f59e0b' },
-    tags: ['ai', 'design'], author: { id: '3', name: 'Maya Patel', email: 'm@p.com', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Maya', role: 'user', createdAt: '' },
-    status: 'published', readTime: 6, views: 6200, likes: 189, commentsCount: 15, isFeatured: true, publishedAt: '2026-06-22T09:00:00Z', createdAt: '2026-06-22T09:00:00Z', updatedAt: '2026-06-22T09:00:00Z',
-  },
-];
-
-const trendingPosts = [
-  { title: 'Why Rust is the Future of Systems Programming', views: '15.2K' },
-  { title: 'Zero-Downtime Deployments with GitHub Actions', views: '12.1K' },
-  { title: 'The Art of Writing Clean TypeScript', views: '9.8K' },
-  { title: 'From Monolith to Microservices: A Migration Story', views: '8.4K' },
-  { title: 'Understanding WebAssembly Beyond the Hype', views: '7.1K' },
-];
+import { blogService } from '@/services/blogService';
+import { categoryService } from '@/services/categoryService';
+import type { Blog, Category } from '@/types';
 
 const fadeUp = {
   initial: { opacity: 0, y: 30 },
@@ -50,6 +16,35 @@ const fadeUp = {
 };
 
 export function Landing() {
+  const [featuredBlogs, setFeaturedBlogs] = useState<Blog[]>([]);
+  const [trendingBlogs, setTrendingBlogs] = useState<Blog[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [featured, trending, cats] = await Promise.all([
+          blogService.getFeatured(),
+          blogService.getTrending(),
+          categoryService.getAll(),
+        ]);
+        setFeaturedBlogs(featured.slice(0, 3));
+        setTrendingBlogs(trending.slice(0, 5));
+        setCategories(cats);
+      } catch (error) {
+        console.error('Failed to load landing data', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  if (isLoading) {
+    return <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-primary-500" size={32} /></div>;
+  }
+
   return (
     <div>
       {/* ===== Hero ===== */}
@@ -114,7 +109,7 @@ export function Landing() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mockFeaturedBlogs.map((blog) => (
+            {featuredBlogs.map((blog) => (
               <BlogCard key={blog.id} blog={blog} />
             ))}
           </div>
@@ -130,7 +125,7 @@ export function Landing() {
           </motion.div>
 
           <motion.div {...fadeUp} className="flex flex-wrap justify-center gap-3">
-            {CATEGORIES.map((cat) => (
+            {categories.map((cat) => (
               <Link
                 key={cat.id}
                 to={`/blogs?category=${cat.slug}`}
@@ -138,7 +133,7 @@ export function Landing() {
               >
                 <div
                   className="px-6 py-3 rounded-2xl glass text-surface-300 font-medium transition-all duration-300 hover:scale-105 hover:shadow-card"
-                  style={{ borderColor: `${cat.color}30` }}
+                  style={{ borderColor: cat.color ? `${cat.color}30` : undefined }}
                 >
                   <span className="group-hover:text-surface-100 transition-colors">{cat.name}</span>
                 </div>
@@ -158,10 +153,10 @@ export function Landing() {
                 Trending Now
               </h2>
               <div className="mt-8 space-y-0">
-                {trendingPosts.map((post, i) => (
+                {trendingBlogs.map((post, i) => (
                   <Link
-                    key={post.title}
-                    to="/blogs"
+                    key={post.id}
+                    to={`/blog/${post.slug}`}
                     className="flex items-start gap-4 py-4 border-b border-surface-800/50 hover:bg-white/[0.02] -mx-3 px-3 rounded-xl transition-colors group"
                   >
                     <span className="font-heading text-3xl font-bold text-surface-700 group-hover:text-primary-600 transition-colors min-w-[2.5rem]">

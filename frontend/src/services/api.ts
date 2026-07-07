@@ -17,7 +17,12 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     throw new Error(error.message || `HTTP ${res.status}`);
   }
 
-  return res.json();
+  if (res.status === 204) {
+    return {} as T;
+  }
+
+  const json = await res.json();
+  return json.data !== undefined ? json.data : json;
 }
 
 export const api = {

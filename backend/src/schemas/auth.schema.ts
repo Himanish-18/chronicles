@@ -59,6 +59,10 @@ export const resetPasswordSchema = z.object({
   password: passwordSchema,
 });
 
+export const socialLoginSchema = z.object({
+  idToken: z.string().min(1, 'ID Token is required'),
+});
+
 // ─────────────────────────────────────────────
 // TYPE EXPORTS
 // ─────────────────────────────────────────────
@@ -69,3 +73,4 @@ export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+export type SocialLoginInput = z.infer<typeof socialLoginSchema>;

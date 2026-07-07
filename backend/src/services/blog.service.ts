@@ -88,13 +88,16 @@ export const blogService = {
     const { search, category, sortBy, page, limit } = query;
     const skip = (page - 1) * limit;
 
-    // Build where clause
-    const where: Prisma.BlogWhereInput = {};
+    // Build where clause, enforce only published blogs
+    const where: Prisma.BlogWhereInput = {
+      status: 'PUBLISHED',
+    };
 
     if (search) {
       where.OR = [
         { title: { contains: search } },
         { excerpt: { contains: search } },
+        { content: { contains: search } },
       ];
     }
 

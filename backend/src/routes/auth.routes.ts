@@ -10,6 +10,7 @@ import {
   changePasswordSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  socialLoginSchema,
 } from '../schemas/auth.schema.js';
 
 const router = Router();
@@ -17,6 +18,7 @@ const router = Router();
 // Public auth routes
 router.post('/register', authLimiter, validate({ body: registerSchema }), authController.register);
 router.post('/login', authLimiter, validate({ body: loginSchema }), authController.login);
+router.post('/social', authLimiter, validate({ body: socialLoginSchema }), authController.socialLogin);
 router.post('/refresh', authController.refresh);
 
 // Password reset routes

@@ -1,36 +1,59 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { PenSquare, Edit, Trash2, Eye, ExternalLink } from 'lucide-react';
+import { PenSquare, Edit, Trash2, Eye, ExternalLink, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent } from '@/components/ui/Card';
 import { SearchBar } from '@/components/SearchBar';
 import { EmptyState } from '@/components/EmptyState';
 import { formatDate, formatNumber } from '@/utils/formatDate';
-
-interface MyBlog {
-  id: string; title: string; slug: string; status: 'draft' | 'published';
-  views: number; comments: number; publishedAt: string; coverImage: string;
-  category: string;
-}
-
-const mockMyBlogs: MyBlog[] = [
-  { id: '1', title: 'Building Scalable Microservices with Docker', slug: 'microservices-docker', status: 'published', views: 12400, comments: 28, publishedAt: '2026-06-15T10:00:00Z', coverImage: 'https://picsum.photos/seed/docker/200/120', category: 'DevOps' },
-  { id: '2', title: 'The Complete Guide to React Server Components', slug: 'react-rsc', status: 'published', views: 8900, comments: 42, publishedAt: '2026-06-18T14:00:00Z', coverImage: 'https://picsum.photos/seed/react/200/120', category: 'Web Dev' },
-  { id: '3', title: 'Understanding WebAssembly Beyond the Hype', slug: 'wasm-deep-dive', status: 'draft', views: 0, comments: 0, publishedAt: '', coverImage: 'https://picsum.photos/seed/wasm/200/120', category: 'Technology' },
-  { id: '4', title: 'Advanced CSS Grid Techniques for Layouts', slug: 'css-grid', status: 'draft', views: 0, comments: 0, publishedAt: '', coverImage: 'https://picsum.photos/seed/cssgrid/200/120', category: 'Design' },
-];
+import { blogService } from '@/services/blogService';
+import type { Blog } from '@/types';
 
 export function MyBlogs() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'published' | 'draft'>('all');
+  const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filtered = mockMyBlogs.filter((b) => {
+  const fetchBlogs = async () => {
+    setIsLoading(true);
+    try {
+      const data = await blogService.getMyBlogs();
+      setBlogs(data);
+    } catch (error) {
+      console.error('Failed to fetch my blogs', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBlogs();
+  }, []);
+
+  const handleDelete = async (id: string) => {
+    if (confirm('Are you sure you want to delete this blog?')) {
+      try {
+        await blogService.delete(id);
+        setBlogs(blogs.filter((b) => b.id !== id));
+      } catch (error) {
+        console.error('Failed to delete blog', error);
+        alert('Failed to delete blog');
+      }
+    }
+  };
+
+  const filtered = blogs.filter((b) => {
     if (filter !== 'all' && b.status !== filter) return false;
     if (search && !b.title.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
+
+  if (isLoading) {
+    return <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-primary-500" size={32} /></div>;
+  }
 
   return (
     <div>
@@ -79,13 +102,13 @@ export function MyBlogs() {
                     <h3 className="text-sm font-medium text-surface-200 truncate group-hover:text-primary-400 transition-colors">{blog.title}</h3>
                     <div className="flex items-center gap-3 mt-1 text-xs text-surface-500">
                       <Badge variant={blog.status === 'published' ? 'primary' : 'outline'} className="text-xs">{blog.status}</Badge>
-                      <span>{blog.category}</span>
+                      <span>{blog.category?.name || 'Uncategorized'}</span>
                       {blog.publishedAt && <span>{formatDate(blog.publishedAt)}</span>}
                     </div>
                   </div>
                   <div className="hidden sm:flex items-center gap-6 text-xs text-surface-500 flex-shrink-0">
                     <span className="flex items-center gap-1"><Eye size={14} /> {formatNumber(blog.views)}</span>
-                    <span>{blog.comments} comments</span>
+                    <span>{blog.commentsCount} comments</span>
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <Link to={`/blog/${blog.slug}`} className="p-2 rounded-lg text-surface-500 hover:text-surface-200 hover:bg-white/5 transition-colors" aria-label="View">
@@ -94,7 +117,7 @@ export function MyBlogs() {
                     <Link to={`/dashboard/edit/${blog.id}`} className="p-2 rounded-lg text-surface-500 hover:text-surface-200 hover:bg-white/5 transition-colors" aria-label="Edit">
                       <Edit size={16} />
                     </Link>
-                    <button className="p-2 rounded-lg text-surface-500 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer" aria-label="Delete">
+                    <button onClick={() => handleDelete(blog.id)} className="p-2 rounded-lg text-surface-500 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer" aria-label="Delete">
                       <Trash2 size={16} />
                     </button>
                   </div>

@@ -38,6 +38,27 @@ export const authController = {
   },
 
   /**
+   * POST /api/auth/social
+   */
+  async socialLogin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await authService.socialLogin(req.body.idToken);
+      
+      // Set refresh token in HTTP-only cookie
+      res.cookie('refreshToken', result.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+
+      sendSuccess(res, { user: result.user, token: result.token }, 'Login successful');
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
    * POST /api/auth/logout
    */
   async logout(req: AuthenticatedRequest, res: Response, next: NextFunction) {
