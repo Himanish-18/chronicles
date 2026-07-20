@@ -11,6 +11,9 @@ import routes from './routes/index.js';
 
 const app = express();
 
+// Trust the reverse proxy (Nginx) so rate limiters use the correct client IP
+app.set('trust proxy', 1);
+
 // ─────────────────────────────────────────────
 // MIDDLEWARE PIPELINE
 // ─────────────────────────────────────────────

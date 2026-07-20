@@ -42,6 +42,7 @@ model User {
 
   blogs              Blog[]
   comments           Comment[]
+  bookmarks          Bookmark[]
   refreshTokens      RefreshToken[]
   passwordResetTokens PasswordResetToken[]
   authIdentities     AuthIdentity[]
@@ -91,6 +92,7 @@ model Blog {
 
   categories BlogCategory[]
   comments   Comment[]
+  bookmarks  Bookmark[]
 
   @@index([slug])
   @@index([authorId])
@@ -178,4 +180,17 @@ model PasswordResetToken {
   @@index([userId])
   @@index([token])
   @@map("password_reset_tokens")
+}
+
+model Bookmark {
+  userId    String
+  blogId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  blog Blog @relation(fields: [blogId], references: [id], onDelete: Cascade)
+
+  @@id([userId, blogId])
+  @@index([blogId])
+  @@map("bookmarks")
 }

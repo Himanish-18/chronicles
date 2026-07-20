@@ -1,5 +1,8 @@
 import { Link } from 'react-router-dom';
 import { Clock, Bookmark } from 'lucide-react';
+import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { blogService } from '@/services/blogService';
 import { motion } from 'framer-motion';
 import type { Blog } from '@/types';
 import { Badge } from '@/components/ui/Badge';
@@ -14,6 +17,23 @@ interface BlogCardProps {
 }
 
 export function BlogCard({ blog, featured = false, className }: BlogCardProps) {
+  const { isAuthenticated } = useAuth();
+  const [isBookmarked, setIsBookmarked] = useState(false);
+
+  const handleBookmark = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!isAuthenticated) {
+      alert('Please login to bookmark articles');
+      return;
+    }
+    try {
+      const res = await blogService.toggleBookmark(blog.id);
+      setIsBookmarked(res.bookmarked);
+    } catch (error) {
+      console.error('Failed to toggle bookmark', error);
+    }
+  };
+
   return (
     <motion.article
       initial={{ opacity: 0, y: 20 }}
@@ -70,11 +90,11 @@ export function BlogCard({ blog, featured = false, className }: BlogCardProps) {
                   {blog.readTime} min
                 </span>
                 <button
-                  onClick={(e) => { e.preventDefault(); }}
-                  className="hover:text-primary-400 transition-colors cursor-pointer"
+                  onClick={handleBookmark}
+                  className={cn("transition-colors cursor-pointer", isBookmarked ? "text-primary-400" : "hover:text-primary-400")}
                   aria-label="Bookmark"
                 >
-                  <Bookmark size={14} />
+                  <Bookmark size={14} className={isBookmarked ? "fill-current" : ""} />
                 </button>
               </div>
             </div>

@@ -77,16 +77,25 @@ export const blogRepository = {
     return { blogs, total };
   },
 
-  /**
-   * Find featured blogs.
-   */
   async findFeatured(limit = 5) {
-    return prisma.blog.findMany({
+    const featured = await prisma.blog.findMany({
       where: { isFeatured: true, status: 'PUBLISHED', deletedAt: null },
       include: blogInclude,
       orderBy: { publishedAt: 'desc' },
       take: limit,
     });
+
+    if (featured.length === 0) {
+      // Fallback to latest blogs if none are explicitly featured
+      return prisma.blog.findMany({
+        where: { status: 'PUBLISHED', deletedAt: null },
+        include: blogInclude,
+        orderBy: { publishedAt: 'desc' },
+        take: limit,
+      });
+    }
+
+    return featured;
   },
 
   /**
@@ -200,5 +209,42 @@ export const blogRepository = {
       where: { id },
       data: { views: { increment: 1 } },
     });
+  },
+
+  /**
+   * Get bookmarked blogs for a user
+   */
+  async findBookmarkedByUser(userId: string) {
+    const bookmarks = await prisma.bookmark.findMany({
+      where: { userId },
+      include: {
+        blog: {
+          include: blogInclude
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    return bookmarks.map(b => b.blog).filter(b => b.deletedAt === null);
+  },
+
+  /**
+   * Toggle a bookmark
+   */
+  async toggleBookmark(userId: string, blogId: string) {
+    const existing = await prisma.bookmark.findUnique({
+      where: { userId_blogId: { userId, blogId } }
+    });
+
+    if (existing) {
+      await prisma.bookmark.delete({
+        where: { userId_blogId: { userId, blogId } }
+      });
+      return false; // bookmarked = false
+    } else {
+      await prisma.bookmark.create({
+        data: { userId, blogId }
+      });
+      return true; // bookmarked = true
+    }
   },
 };

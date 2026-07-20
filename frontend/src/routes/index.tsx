@@ -16,6 +16,10 @@ import { CreateBlog } from '@/pages/CreateBlog';
 import { Profile } from '@/pages/Profile';
 import { Settings } from '@/pages/Settings';
 import { NotFound } from '@/pages/NotFound';
+import { Bookmarks } from '@/pages/Bookmarks';
+import { About } from '@/pages/About';
+import { Categories } from '@/pages/Categories';
+import { Trending } from '@/pages/Trending';
 
 export const router = createBrowserRouter([
   {
@@ -24,6 +28,9 @@ export const router = createBrowserRouter([
       { path: '/', element: <Landing /> },
       { path: '/blogs', element: <BlogListing /> },
       { path: '/blog/:slug', element: <BlogDetail /> },
+      { path: '/categories', element: <Categories /> },
+      { path: '/trending', element: <Trending /> },
+      { path: '/about', element: <About /> },
       { path: '*', element: <NotFound /> },
     ],
   },
@@ -50,6 +57,7 @@ export const router = createBrowserRouter([
       { path: '/dashboard/create', element: <CreateBlog /> },
       { path: '/dashboard/edit/:id', element: <CreateBlog /> },
       { path: '/dashboard/profile', element: <Profile /> },
+      { path: '/dashboard/bookmarks', element: <Bookmarks /> },
       { path: '/dashboard/settings', element: <Settings /> },
     ],
   },

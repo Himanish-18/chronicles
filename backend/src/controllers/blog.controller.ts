@@ -105,4 +105,28 @@ export const blogController = {
       next(error);
     }
   },
+
+  /**
+   * GET /api/blogs/bookmarked
+   */
+  async getBookmarks(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const result = await blogService.getBookmarks(req.user!.id);
+      sendSuccess(res, result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * POST /api/blogs/:id/bookmark
+   */
+  async toggleBookmark(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const result = await blogService.toggleBookmark(req.user!.id, req.params.id as string);
+      sendSuccess(res, result, result.bookmarked ? 'Blog bookmarked' : 'Bookmark removed');
+    } catch (error) {
+      next(error);
+    }
+  },
 };

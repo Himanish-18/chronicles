@@ -25,4 +25,8 @@ export const blogService = {
   delete: (id: string) => api.delete<void>(`/blogs/${id}`),
 
   getMyBlogs: () => api.get<Blog[]>('/blogs/me'),
+
+  getBookmarks: () => api.get<Blog[]>('/blogs/bookmarked'),
+
+  toggleBookmark: (id: string) => api.post<{ bookmarked: boolean }>(`/blogs/${id}/bookmark`, {}),
 };

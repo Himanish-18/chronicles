@@ -293,4 +293,24 @@ export const blogService = {
 
     await blogRepository.softDelete(blogId);
   },
+
+  /**
+   * Get all bookmarked blogs for a user.
+   */
+  async getBookmarks(userId: string): Promise<BlogResponse[]> {
+    const blogs = await blogRepository.findBookmarkedByUser(userId);
+    return blogs.map(formatBlog);
+  },
+
+  /**
+   * Toggle a bookmark.
+   */
+  async toggleBookmark(userId: string, blogId: string): Promise<{ bookmarked: boolean }> {
+    const existing = await blogRepository.findById(blogId);
+    if (!existing) {
+      throw new NotFoundError('Blog not found');
+    }
+    const bookmarked = await blogRepository.toggleBookmark(userId, blogId);
+    return { bookmarked };
+  },
 };

@@ -10,12 +10,16 @@ import { BlogCard } from '@/components/BlogCard';
 import { formatDate, formatNumber } from '@/utils/formatDate';
 import { blogService } from '@/services/blogService';
 import type { Blog } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { cn } from '@/utils/cn';
 
 export function BlogDetail() {
   const { slug } = useParams();
+  const { isAuthenticated } = useAuth();
   const [blog, setBlog] = useState<Blog | null>(null);
   const [relatedBlogs, setRelatedBlogs] = useState<Blog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isBookmarked, setIsBookmarked] = useState(false);
 
   useEffect(() => {
     const fetchBlog = async () => {
@@ -36,6 +40,20 @@ export function BlogDetail() {
     };
     fetchBlog();
   }, [slug]);
+
+  const handleBookmark = async () => {
+    if (!isAuthenticated) {
+      alert('Please login to bookmark articles');
+      return;
+    }
+    if (!blog) return;
+    try {
+      const res = await blogService.toggleBookmark(blog.id);
+      setIsBookmarked(res.bookmarked);
+    } catch (error) {
+      console.error('Failed to toggle bookmark', error);
+    }
+  };
 
   // Simple markdown-to-html rendering for code blocks, headings, lists, etc.
   const renderContent = (content: string) => {
@@ -137,7 +155,12 @@ export function BlogDetail() {
             <div className="flex items-center gap-2">
               <ActionButton icon={<Heart size={18} />} label="Like" count={blog.likes} />
               <ActionButton icon={<MessageCircle size={18} />} label="Comment" count={blog.commentsCount} />
-              <ActionButton icon={<Bookmark size={18} />} label="Bookmark" />
+              <ActionButton 
+                icon={<Bookmark size={18} className={isBookmarked ? "fill-current" : ""} />} 
+                label="Bookmark" 
+                onClick={handleBookmark}
+                className={isBookmarked ? "text-primary-400" : ""}
+              />
               <ActionButton icon={<Share2 size={18} />} label="Share" />
             </div>
           </div>
@@ -194,10 +217,11 @@ export function BlogDetail() {
   );
 }
 
-function ActionButton({ icon, label, count }: { icon: React.ReactNode; label: string; count?: number }) {
+function ActionButton({ icon, label, count, onClick, className }: { icon: React.ReactNode; label: string; count?: number, onClick?: () => void, className?: string }) {
   return (
     <button
-      className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-surface-500 hover:text-primary-400 hover:bg-white/5 transition-colors text-sm cursor-pointer"
+      onClick={onClick}
+      className={cn("flex items-center gap-1 px-2 py-1.5 rounded-lg text-surface-500 hover:text-primary-400 hover:bg-white/5 transition-colors text-sm cursor-pointer", className)}
       aria-label={label}
     >
       {icon}

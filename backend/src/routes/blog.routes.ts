@@ -22,7 +22,11 @@ router.get('/:slug', optionalAuth, validate({ params: blogParamsSchema }), blogC
 // Protected routes (require authentication)
 router.use(authenticate);
 
+router.get('/bookmarked', blogController.getBookmarks);
+
 router.post('/', validate({ body: createBlogSchema }), blogController.createBlog);
+router.post('/:id/bookmark', validate({ params: blogIdParamsSchema }), blogController.toggleBookmark);
+
 router.put(
   '/:id',
   validate({ params: blogIdParamsSchema, body: updateBlogSchema }),

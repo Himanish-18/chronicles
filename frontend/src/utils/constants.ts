@@ -11,8 +11,8 @@ export const CATEGORIES = [
 
 export const NAV_LINKS = [
   { label: 'Explore', href: '/blogs' },
-  { label: 'Categories', href: '/blogs?category=all' },
-  { label: 'Trending', href: '/blogs?sort=trending' },
+  { label: 'Categories', href: '/categories' },
+  { label: 'Trending', href: '/trending' },
   { label: 'About', href: '/about' },
 ] as const;
 
@@ -21,7 +21,6 @@ export const DASHBOARD_NAV = [
   { label: 'My Blogs', href: '/dashboard/blogs', icon: 'FileText' },
   { label: 'Create New', href: '/dashboard/create', icon: 'PenSquare' },
   { label: 'Bookmarks', href: '/dashboard/bookmarks', icon: 'Bookmark' },
-  { label: 'Analytics', href: '/dashboard/analytics', icon: 'BarChart3' },
 ] as const;
 
 export const DASHBOARD_NAV_BOTTOM = [

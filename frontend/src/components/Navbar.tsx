@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, PenSquare } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,11 +10,23 @@ import { cn } from '@/utils/cn';
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const { isAuthenticated } = useAuth();
   const location = useLocation();
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-[var(--z-sticky)] glass-strong">
+    <header className={cn(
+      "sticky top-0 z-[var(--z-sticky)] transition-all duration-300 border-b",
+      scrolled ? "glass-strong border-surface-800/50 shadow-sm" : "bg-transparent border-transparent"
+    )}>
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
