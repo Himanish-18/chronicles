@@ -7,7 +7,7 @@ A production-ready blogging platform showcasing a modern DevOps workflow. It con
 Please refer to `docs/architecture.md` for a complete breakdown of the project architecture and repository structure.
 
 ## Quick Start (For Future Phases)
-Detailed setup instructions will be provided in Phase 4 and beyond.
+Detailed setup instructions will be provided in Phase 5 and beyond.
 
 ## Documentation
 - [Architecture & Design](docs/architecture.md)
