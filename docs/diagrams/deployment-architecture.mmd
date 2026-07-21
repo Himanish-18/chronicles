@@ -1,0 +1,38 @@
+graph TD
+    subgraph "Development"
+        DEV["Developer Workstation<br/>Windows 11"]
+    end
+
+    subgraph "Version Control"
+        GH["GitHub Repository<br/>Himanish-18/chronicles"]
+        GA["GitHub Actions<br/>ubuntu-latest Runner"]
+    end
+
+    subgraph "AWS Cloud"
+        subgraph "EC2 Instance (Ubuntu 24.04)"
+            SSH["SSH (Port 22)"]
+            DC["Docker Compose"]
+            subgraph "Containers"
+                C1["Frontend (Nginx)"]
+                C2["Backend (Node.js)"]
+                C3["MySQL 8.0"]
+            end
+        end
+        SG["Security Group<br/>Ports: 22, 3000"]
+    end
+
+    subgraph "External Services"
+        FB["Firebase<br/>Auth + Storage"]
+        SMTP["Gmail SMTP<br/>Password Reset"]
+    end
+
+    DEV -->|"git push main"| GH
+    GH -->|"Trigger"| GA
+    GA -->|"SSH + deploy.sh"| SSH
+    SSH --> DC
+    DC --> C1
+    DC --> C2
+    DC --> C3
+    C2 --> FB
+    C2 --> SMTP
+    SG -.->|"Inbound Rules"| SSH

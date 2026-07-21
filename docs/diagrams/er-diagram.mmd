@@ -1,0 +1,108 @@
+erDiagram
+    User ||--o{ Blog : "authors"
+    User ||--o{ Comment : "writes"
+    User ||--o{ Bookmark : "bookmarks"
+    User ||--o{ RefreshToken : "has"
+    User ||--o{ PasswordResetToken : "requests"
+    User ||--o{ AuthIdentity : "authenticates via"
+
+    Blog ||--o{ BlogCategory : "categorized as"
+    Blog ||--o{ Comment : "receives"
+    Blog ||--o{ Bookmark : "bookmarked by"
+
+    Category ||--o{ BlogCategory : "applied to"
+
+    Comment ||--o{ Comment : "has replies"
+
+    User {
+        string id PK "UUID"
+        string name "VARCHAR(100)"
+        string email UK "VARCHAR(255)"
+        string passwordHash "VARCHAR(255), nullable"
+        string avatar "VARCHAR(500), nullable"
+        string bio "TEXT, nullable"
+        enum role "USER | ADMIN"
+        json socialLinks "nullable"
+        datetime createdAt
+        datetime updatedAt
+        datetime deletedAt "soft delete"
+    }
+
+    AuthIdentity {
+        string id PK "UUID"
+        string userId FK
+        string provider "google | github"
+        string providerUserId "VARCHAR(255)"
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    Blog {
+        string id PK "UUID"
+        string title "VARCHAR(200)"
+        string slug UK "VARCHAR(250)"
+        string excerpt "VARCHAR(500)"
+        string content "LONGTEXT"
+        string coverImage "VARCHAR(500), nullable"
+        enum status "DRAFT | PUBLISHED | ARCHIVED"
+        int readTime "default 0"
+        int views "default 0"
+        int likes "default 0"
+        boolean isFeatured "default false"
+        json tags "nullable"
+        string authorId FK
+        datetime publishedAt "nullable"
+        datetime createdAt
+        datetime updatedAt
+        datetime deletedAt "soft delete"
+    }
+
+    Category {
+        string id PK "UUID"
+        string name "VARCHAR(100)"
+        string slug UK "VARCHAR(100)"
+        string color "VARCHAR(7), nullable"
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    BlogCategory {
+        string blogId PK_FK
+        string categoryId PK_FK
+    }
+
+    Comment {
+        string id PK "UUID"
+        string content "TEXT"
+        int likes "default 0"
+        string authorId FK
+        string blogId FK
+        string parentId FK "nullable, self-ref"
+        datetime createdAt
+        datetime updatedAt
+        datetime deletedAt "soft delete"
+    }
+
+    RefreshToken {
+        string id PK "UUID"
+        string token UK "VARCHAR(500)"
+        string userId FK
+        datetime expiresAt
+        datetime revokedAt "nullable"
+        datetime createdAt
+    }
+
+    PasswordResetToken {
+        string id PK "UUID"
+        string token UK "VARCHAR(255)"
+        string userId FK
+        datetime expiresAt
+        datetime usedAt "nullable"
+        datetime createdAt
+    }
+
+    Bookmark {
+        string userId PK_FK
+        string blogId PK_FK
+        datetime createdAt
+    }

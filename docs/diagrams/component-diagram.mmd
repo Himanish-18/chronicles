@@ -1,0 +1,78 @@
+graph TB
+    subgraph "Frontend Components"
+        subgraph "Layouts"
+            ML["MainLayout"]
+            AL["AuthLayout"]
+            DL["DashboardLayout"]
+        end
+
+        subgraph "Pages"
+            P1["Landing"]
+            P2["BlogListing"]
+            P3["BlogDetail"]
+            P4["Categories"]
+            P5["Trending"]
+            P6["About"]
+            P7["Login"]
+            P8["Register"]
+            P9["ForgotPassword"]
+            P10["ResetPassword"]
+            P11["DashboardHome"]
+            P12["MyBlogs"]
+            P13["CreateBlog"]
+            P14["Profile"]
+            P15["Bookmarks"]
+            P16["Settings"]
+        end
+
+        subgraph "Shared Components"
+            C1["Navbar"]
+            C2["Footer"]
+            C3["BlogCard"]
+            C4["Sidebar"]
+            C5["SearchBar"]
+            C6["Pagination"]
+            C7["CategoryChips"]
+            C8["AuthorCard"]
+            C9["ThemeToggle"]
+            C10["ProfileDropdown"]
+            C11["LoadingSpinner"]
+            C12["SkeletonLoader"]
+            C13["EmptyState"]
+        end
+
+        subgraph "Contexts"
+            CTX1["AuthContext"]
+            CTX2["ThemeContext"]
+        end
+
+        subgraph "Services"
+            S1["api.ts (fetch wrapper)"]
+            S2["authService.ts"]
+            S3["blogService.ts"]
+            S4["socialAuthService.ts"]
+            S5["categoryService.ts"]
+            S6["storageService.ts"]
+        end
+    end
+
+    ML --> P1
+    ML --> P2
+    ML --> P3
+    ML --> P4
+    ML --> P5
+    ML --> P6
+    AL --> P7
+    AL --> P8
+    AL --> P9
+    AL --> P10
+    DL --> P11
+    DL --> P12
+    DL --> P13
+    DL --> P14
+    DL --> P15
+    DL --> P16
+
+    CTX1 --> S2
+    CTX1 --> S4
+    P13 --> S6

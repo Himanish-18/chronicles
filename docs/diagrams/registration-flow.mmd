@@ -1,0 +1,24 @@
+sequenceDiagram
+    participant U as User
+    participant FE as React Frontend
+    participant NG as Nginx
+    participant BE as Express Backend
+    participant DB as MySQL
+
+    Note over U,DB: User Registration Flow
+    U->>FE: Enter name, email, password
+    FE->>NG: POST /api/auth/register
+    NG->>BE: Proxy to backend:5000
+    BE->>BE: authLimiter (10 req / 15 min)
+    BE->>BE: validate(registerSchema via Zod)
+    BE->>DB: Check if email exists
+    DB-->>BE: null (no conflict)
+    BE->>BE: bcrypt.hash(password, 12 rounds)
+    BE->>DB: INSERT user
+    DB-->>BE: User record
+    BE->>BE: generateAccessToken(JWT)
+    BE->>DB: Store RefreshToken (7-day expiry)
+    BE-->>NG: { user, token, refreshToken }
+    NG-->>FE: Response
+    FE->>FE: localStorage.setItem("chronicles-token", token)
+    FE-->>U: Redirect to Dashboard

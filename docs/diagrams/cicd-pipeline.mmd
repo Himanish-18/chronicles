@@ -1,0 +1,22 @@
+graph TD
+    A["Developer pushes to main"] --> B["GitHub Actions Trigger"]
+    B --> C["ubuntu-latest Runner"]
+    C --> D["Checkout Code"]
+    D --> E["Configure SSH Key"]
+    E --> F["ssh-keyscan known_hosts"]
+    F --> G["SSH into EC2"]
+    G --> H["git pull origin main"]
+    H --> I["chmod +x scripts/deploy.sh"]
+    I --> J["./scripts/deploy.sh"]
+
+    subgraph "deploy.sh on EC2"
+        J --> K["docker compose down"]
+        K --> L["docker compose build"]
+        L --> M["docker compose up -d"]
+        M --> N["docker image prune -f"]
+        N --> O["sleep 20 - Wait"]
+        O --> P["docker compose ps"]
+        P --> Q{"All services Up?"}
+        Q -->|Yes| R["✅ Deployment Complete"]
+        Q -->|No| S["❌ Print Logs and Fail"]
+    end

@@ -1,0 +1,38 @@
+sequenceDiagram
+    participant U as User (Browser)
+    participant FB as Firebase Auth
+    participant FE as React Frontend
+    participant NG as Nginx Proxy
+    participant BE as Express Backend
+    participant DB as MySQL
+
+    Note over U,DB: Email/Password Login Flow
+    U->>FE: Enter email + password
+    FE->>NG: POST /api/auth/login
+    NG->>BE: Proxy to backend:5000
+    BE->>DB: Find user by email
+    DB-->>BE: User record (with passwordHash)
+    BE->>BE: bcrypt.compare(password, hash)
+    BE->>BE: generateAccessToken(JWT)
+    BE->>DB: Store RefreshToken
+    BE-->>NG: { user, token, refreshToken }
+    NG-->>FE: Response
+    FE->>FE: localStorage.setItem("chronicles-token", token)
+    FE-->>U: Redirect to Dashboard
+
+    Note over U,DB: Social Login Flow (Google/GitHub)
+    U->>FB: signInWithPopup(provider)
+    FB-->>U: Firebase ID Token
+    U->>FE: ID Token received
+    FE->>NG: POST /api/auth/social { idToken }
+    NG->>BE: Proxy to backend:5000
+    BE->>FB: firebaseAdmin.auth().verifyIdToken(idToken)
+    FB-->>BE: Decoded Token (uid, email, provider)
+    BE->>DB: Find or Create AuthIdentity + User
+    DB-->>BE: User record
+    BE->>BE: generateAccessToken(JWT)
+    BE->>DB: Store RefreshToken
+    BE-->>NG: { user, token, refreshToken }
+    NG-->>FE: Response
+    FE->>FE: localStorage.setItem("chronicles-token", token)
+    FE-->>U: Redirect to Dashboard

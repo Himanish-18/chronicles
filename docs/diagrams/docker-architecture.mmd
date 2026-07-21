@@ -1,0 +1,28 @@
+graph TB
+    subgraph "Docker Host (EC2 - Ubuntu 24.04)"
+        subgraph "chronicles-app Network (bridge)"
+            FE["chronicles-frontend<br/>Nginx 1.27-alpine<br/>Port 80 → Host 3000"]
+            BE["chronicles-backend<br/>Node 22-alpine<br/>Port 5000 (internal)"]
+        end
+
+        subgraph "chronicles-db Network (bridge)"
+            BE2["chronicles-backend"]
+            MG["chronicles-migrate<br/>Node 22-alpine<br/>One-shot container"]
+            DB["chronicles-mysql<br/>MySQL 8.0<br/>Port 3306 (internal)"]
+        end
+
+        subgraph "Volume"
+            VOL["chronicles-mysql-data<br/>/var/lib/mysql"]
+        end
+    end
+
+    FE -->|"/api/* proxy_pass"| BE
+    BE2 -->|"Prisma Client TCP"| DB
+    MG -->|"prisma migrate deploy"| DB
+    DB --- VOL
+
+    MG -.->|"depends_on: mysql healthy"| DB
+    BE -.->|"depends_on: migrate completed"| MG
+    FE -.->|"depends_on: backend healthy"| BE
+
+    note1["BE and BE2 are the same container<br/>shown in both networks"]

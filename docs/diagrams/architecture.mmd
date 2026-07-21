@@ -1,0 +1,37 @@
+graph TB
+    subgraph "Client Layer"
+        A["Browser / Client"]
+    end
+
+    subgraph "Reverse Proxy"
+        B["Nginx (Port 80)"]
+    end
+
+    subgraph "Frontend Container"
+        C["React 19 + Vite SPA"]
+    end
+
+    subgraph "Backend Container"
+        D["Express 5 API (Port 5000)"]
+        E["Prisma ORM"]
+    end
+
+    subgraph "Database Container"
+        F["MySQL 8.0"]
+    end
+
+    subgraph "External Services"
+        G["Firebase Auth"]
+        H["Firebase Storage"]
+        I["Gmail SMTP"]
+    end
+
+    A -->|"HTTP :3000"| B
+    B -->|"Static Files"| C
+    B -->|"/api/* Proxy"| D
+    D --> E
+    E -->|"TCP :3306"| F
+    A -->|"OAuth Popup"| G
+    A -->|"Image Upload"| H
+    D -->|"Verify ID Token"| G
+    D -->|"Send Reset Email"| I

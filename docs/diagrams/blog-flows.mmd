@@ -1,0 +1,47 @@
+sequenceDiagram
+    participant U as User
+    participant FE as React Frontend
+    participant NG as Nginx
+    participant BE as Express Backend
+    participant DB as MySQL
+    participant FS as Firebase Storage
+
+    Note over U,FS: Create Blog Post Flow
+    U->>FE: Fill title, content, category
+    U->>FE: Drag & drop cover image
+    FE->>FS: Upload image to Firebase Storage
+    FS-->>FE: Download URL
+    FE->>NG: POST /api/blogs { title, content, categoryId, coverImage, status }
+    NG->>BE: Proxy request
+    BE->>BE: authenticate middleware (verify JWT)
+    BE->>BE: validate middleware (Zod schema)
+    BE->>DB: Verify category exists
+    BE->>BE: generateUniqueSlug(title)
+    BE->>BE: calculateReadTime(content)
+    BE->>DB: INSERT blog + BlogCategory
+    DB-->>BE: Blog record
+    BE-->>NG: { blog }
+    NG-->>FE: Response
+    FE-->>U: Redirect to blog
+
+    Note over U,DB: Like / Bookmark Blog Flow
+    U->>FE: Click bookmark icon
+    FE->>NG: POST /api/blogs/:id/bookmark
+    NG->>BE: Proxy request
+    BE->>BE: authenticate middleware
+    BE->>DB: Toggle Bookmark (insert or delete)
+    DB-->>BE: bookmarked: true/false
+    BE-->>NG: { bookmarked }
+    NG-->>FE: Response
+    FE-->>U: Update bookmark icon state
+
+    Note over U,DB: Comment on Blog Flow
+    U->>FE: Type comment, click submit
+    FE->>NG: POST /api/blogs/:slug/comments
+    NG->>BE: Proxy request
+    BE->>BE: authenticate middleware
+    BE->>DB: INSERT comment (with optional parentId)
+    DB-->>BE: Comment record
+    BE-->>NG: { comment }
+    NG-->>FE: Response
+    FE-->>U: Render new comment in thread
