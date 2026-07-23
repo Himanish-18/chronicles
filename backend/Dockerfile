@@ -25,6 +25,7 @@ COPY tsconfig.json ./
 # Compile TypeScript
 RUN npm run build
 
+
 # ══════════════════════════════════════════════
 # Stage 2 — Runtime
 # ══════════════════════════════════════════════
@@ -48,6 +49,12 @@ COPY prisma.config.ts ./
 # Copy generated Prisma Client from build stage
 COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=build /app/node_modules/@prisma ./node_modules/@prisma
+
+# Copy tsx from build stage (needed by prisma db seed)
+COPY --from=build /app/node_modules/tsx ./node_modules/tsx
+COPY --from=build /app/node_modules/esbuild ./node_modules/esbuild
+COPY --from=build /app/node_modules/@esbuild ./node_modules/@esbuild
+COPY tsconfig.json ./
 
 # Copy compiled JavaScript from build stage
 COPY --from=build /app/dist ./dist/
